@@ -1,9 +1,9 @@
 This repository contains a collection of arduino sketches that allow using espnow in a networked enviornment. The project cosists of 3 main parts:
 
 
-- sender
+- sender_8266
 
-The sender is a low powerded device that performs an action on a timer (or a user request) and sends the results to the receiver
+The sender is a low powered device that performs an action on a timer (or a user request) and sends the results to the receiver
 
 - receiver receives messages from senders and packages them as serial messages, which are sent to esp_server
 
