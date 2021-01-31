@@ -16,10 +16,10 @@
 const char* ssid = STASSID;
 const char* password = STAPSK;
 
-const char* mqttServer = "192.168.86.46";
+const char* mqttServer = "mqtt_host";
 const int mqttPort = 1883;
-const char* mqttUser = "openhabian";
-const char* mqttPassword = "mojkomarekgryzie";
+const char* mqttUser = "mqtt_user";
+const char* mqttPassword = "mqtt_pwd";
 
 ESP8266WebServer server(80);
 SoftwareSerial swSerial(D6, D7); // RX, TX
