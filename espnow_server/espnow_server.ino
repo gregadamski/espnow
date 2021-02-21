@@ -5,21 +5,23 @@
 #include <SoftwareSerial.h>
 #include <PubSubClient.h>
 
+
+
+#define SERVER_ID "EspNowServer1"
+
+
 #ifndef STASSID
 #define STASSID "ssid"
 #define STAPSK  "pwd"
 #endif
 
-
-#define SERVER_ID "EspNowServer1"
-
 const char* ssid = STASSID;
 const char* password = STAPSK;
 
-const char* mqttServer = "mqtt_host";
+const char* mqttServer = "mqttserver";
 const int mqttPort = 1883;
-const char* mqttUser = "mqtt_user";
-const char* mqttPassword = "mqtt_pwd";
+const char* mqttUser = "user";
+const char* mqttPassword = "pass";
 
 ESP8266WebServer server(80);
 SoftwareSerial swSerial(D6, D7); // RX, TX
@@ -55,6 +57,24 @@ typedef struct MsgTempHum {
   float humidity;
   
 } MsgTempHum;
+
+typedef struct MsgTempHumPressure {
+  MsgHeader msgHeader;
+  float temp;
+  float humidity;
+  float pressure;
+  
+} MsgTempHumPressure;
+
+
+typedef struct MsgTempHumPressureVoltage {
+  MsgHeader msgHeader;
+  float temp;
+  float humidity;
+  float pressure;
+  float voltage;
+  
+} MsgTempHumPressureVoltage;
 
 
 MsgHeader msgHeader;
@@ -109,22 +129,7 @@ void setup(void) {
 
   // connecting to mqtt
   mqttClient.setServer(mqttServer, mqttPort);
-
-  while (!mqttClient.connected()) {
-      Serial.println("Connecting to MQTT...");
-   
-      if (mqttClient.connect("ESP8266Client", mqttUser, mqttPassword )) {
-   
-        Serial.println("connected");  
-   
-      } else {
-   
-        Serial.print("failed with state ");
-        Serial.print(mqttClient.state());
-        delay(2000);
-   
-      }
-  }
+  connectMqtt();
 
 
 }
@@ -152,6 +157,12 @@ void loop(void) {
       case 2:
         handleTempHumMsg(buf);
         break;
+      case 3:
+        handleTempHumPressureMsg(buf);
+        break;
+      case 4:
+        handleTempHumPressureVoltageMsg(buf);
+        break;
       default:
         Serial.println("Unknown message type received. Skipping");
         break;
@@ -169,6 +180,24 @@ void handleTempMsg(byte * buf)
   publishMqttMsg("temp", msgTemp.msgHeader.sensorId,  String(msgTemp.temp));
 }
 
+void connectMqtt()
+{
+    while (!mqttClient.connected()) {
+      Serial.println("Connecting to MQTT...");
+   
+      if (mqttClient.connect("ESP8266Client", mqttUser, mqttPassword )) {
+   
+        Serial.println("connected");  
+   
+      } else {
+   
+        Serial.print("failed with state ");
+        Serial.print(mqttClient.state());
+        delay(2000);
+   
+      }
+  }
+}
 
 void handleTempHumMsg(byte * buf)
 {
@@ -178,6 +207,27 @@ void handleTempHumMsg(byte * buf)
   publishMqttMsg("humidity", msgTempHum.msgHeader.sensorId, String(msgTempHum.humidity));
 }
 
+void handleTempHumPressureMsg(byte * buf)
+{
+  MsgTempHumPressure msg;
+  memcpy(&msg, buf, sizeof(msg));
+  publishMqttMsg("temp", msg.msgHeader.sensorId, String(msg.temp));
+  publishMqttMsg("humidity", msg.msgHeader.sensorId, String(msg.humidity));
+  publishMqttMsg("pressure", msg.msgHeader.sensorId, String(msg.pressure));
+}
+
+void handleTempHumPressureVoltageMsg(byte * buf)
+{
+  MsgTempHumPressureVoltage msg;
+  memcpy(&msg, buf, sizeof(msg));
+  publishMqttMsg("temp", msg.msgHeader.sensorId, String(msg.temp));
+  publishMqttMsg("humidity", msg.msgHeader.sensorId, String(msg.humidity));
+  publishMqttMsg("pressure", msg.msgHeader.sensorId, String(msg.pressure));
+  publishMqttMsg("voltage", msg.msgHeader.sensorId, String(msg.voltage));
+
+}
+
+
 void publishMqttMsg(String topic, int sensorId, String value)
 {
   String msg = SERVER_ID;
@@ -185,6 +235,13 @@ void publishMqttMsg(String topic, int sensorId, String value)
   msg += String("/") + String(topic);
   Serial.println(msg);
   Serial.println(value);
-  
-  mqttClient.publish(msg.c_str(), value.c_str());
+
+  connectMqtt();
+
+  bool result = mqttClient.publish(msg.c_str(), value.c_str());
+
+  if (!result)
+  {
+    Serial.println("Error publishing to mqtt");
+  }
 }
